@@ -3,10 +3,10 @@
 
 """
 Convert separate Yelp JSON files to SQLite database for exploration with DB Browser.
-This creates a sample database with a limited number of records for browsing.
+This converts ALL records from the JSON files to SQLite format.
 
 Usage:
-    python separate_json_to_sqlite.py yelp_dataset sample.db
+    python separate_json_to_sqlite.py yelp_dataset full_yelp.db
 """
 
 import json
@@ -168,7 +168,7 @@ def insert_user(conn, data):
     except Exception as e:
         print(f"Error inserting user: {e}")
 
-def process_file(conn, file_path, data_type, max_records=10000):
+def process_file(conn, file_path, data_type, max_records=None):
     """Process a single JSON file and insert records into database."""
     
     if not os.path.exists(file_path):
@@ -176,16 +176,21 @@ def process_file(conn, file_path, data_type, max_records=10000):
         return 0
     
     print(f"Processing {data_type} file: {file_path}")
+    if max_records:
+        print(f"  Limited to {max_records:,} records")
+    else:
+        print(f"  Processing ALL records")
+    
     count = 0
     
     with open(file_path, 'r', encoding='utf-8') as f:
         for line_num, line in enumerate(f, 1):
-            if count >= max_records:
+            if max_records and count >= max_records:
                 print(f"Reached maximum records ({max_records}) for {data_type}")
                 break
                 
-            if line_num % 10000 == 0:
-                print(f"  Processed {line_num} lines, inserted {count} records...")
+            if line_num % 50000 == 0:
+                print(f"  Processed {line_num:,} lines, inserted {count:,} records...")
                 conn.commit()
             
             try:
@@ -221,11 +226,8 @@ def create_views(conn):
         CREATE VIEW IF NOT EXISTS chinese_restaurants AS
         SELECT * FROM businesses 
         WHERE categories IS NOT NULL AND (
-            categories LIKE '%Chinese%' 
-            OR categories LIKE '%Dim Sum%'
-            OR categories LIKE '%Szechuan%'
-            OR categories LIKE '%Cantonese%'
-            OR categories LIKE '%Hunan%'
+            LOWER(categories) LIKE '%restaurant%' AND
+            LOWER(categories) LIKE '%chinese%' 
         )
     ''')
     
@@ -234,29 +236,9 @@ def create_views(conn):
         CREATE VIEW IF NOT EXISTS restaurants AS
         SELECT * FROM businesses 
         WHERE categories IS NOT NULL AND 
-              categories LIKE '%Restaurants%'
+              LOWER(categories) LIKE '%restaurant%'
     ''')
     
-    # Reviews with business info view
-    conn.execute('''
-        CREATE VIEW IF NOT EXISTS reviews_with_business AS
-        SELECT 
-            r.review_id,
-            r.stars as review_stars,
-            r.text as review_text,
-            r.date as review_date,
-            r.useful,
-            r.funny,
-            r.cool,
-            b.business_id,
-            b.name as business_name,
-            b.city as business_city,
-            b.state as business_state,
-            b.categories as business_categories,
-            b.stars as business_stars
-        FROM reviews r
-        JOIN businesses b ON r.business_id = b.business_id
-    ''')
     
     # Chinese restaurant reviews view (complete dataset)
     conn.execute('''
@@ -279,17 +261,13 @@ def create_views(conn):
         JOIN businesses b ON r.business_id = b.business_id
         JOIN users u ON r.user_id = u.user_id
         WHERE b.categories IS NOT NULL AND (
-            b.categories LIKE '%Chinese%' 
-            OR b.categories LIKE '%Dim Sum%'
-            OR b.categories LIKE '%Szechuan%'
-            OR b.categories LIKE '%Cantonese%'
-            OR b.categories LIKE '%Hunan%'
+            LOWER(b.categories) LIKE '%chinese%' 
         )
     ''')
     
     conn.commit()
 
-def convert_separate_json_to_sqlite(dataset_folder, output_db, max_records_per_type=10000):
+def convert_separate_json_to_sqlite(dataset_folder, output_db, max_records_per_type=None):
     """Convert separate Yelp JSON files to SQLite database."""
     
     # File paths
@@ -310,7 +288,11 @@ def convert_separate_json_to_sqlite(dataset_folder, output_db, max_records_per_t
     create_tables(conn)
     
     print(f"\nConverting Yelp dataset files to {output_db}...")
-    print(f"Limiting to {max_records_per_type:,} records per type for browsing\n")
+    if max_records_per_type:
+        print(f"Limiting to {max_records_per_type:,} records per type for browsing")
+    else:
+        print("Processing ALL records (this may take a while for large datasets)")
+    print()
     
     # Track record counts
     counts = {}
@@ -348,14 +330,16 @@ def convert_separate_json_to_sqlite(dataset_folder, output_db, max_records_per_t
     print("  SELECT * FROM chinese_restaurant_reviews LIMIT 10;")
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("Usage: python separate_json_to_sqlite.py <dataset_folder> <output.db>")
-        print("Example: python separate_json_to_sqlite.py yelp_dataset sample.db")
+    if len(sys.argv) not in [3, 4]:
+        print("Usage: python separate_json_to_sqlite.py <dataset_folder> <output.db> [max_records]")
+        print("Example: python separate_json_to_sqlite.py yelp_dataset full_yelp.db")
+        print("Example: python separate_json_to_sqlite.py yelp_dataset sample.db 10000")
         sys.exit(1)
     
     dataset_folder = sys.argv[1]
     output_db = sys.argv[2]
+    max_records = int(sys.argv[3]) if len(sys.argv) == 4 else None
     
-    convert_separate_json_to_sqlite(dataset_folder, output_db)
+    convert_separate_json_to_sqlite(dataset_folder, output_db, max_records)
 
     #Usage: type in terminal
