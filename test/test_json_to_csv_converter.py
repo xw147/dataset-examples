@@ -2,7 +2,7 @@
 """Test the json to csv converter script."""
 from unittest2 import TestCase
 
-import json_to_csv_converter
+import nameAnalysis.json_to_csv_converter as json_to_csv_converter
 
 
 class TestJsonToCsvConverter(TestCase):

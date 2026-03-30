@@ -7,7 +7,6 @@ This script:
 2. Applies the filtering logic directly to the categories
 3. Saves filtered results as a new table in the database
 
-No need for external ID files - filters based on tag logic.
 
 Usage:
     python filter_from_categories.py

@@ -1,0 +1,17 @@
+name: wbp
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pandas
+  - requests
+  # --- pip-only packages ---
+  - pip:
+      - python-dotenv
+      - names-dataset
+      - simplejson
+      - mrjob
+      - testify
+      - unittest2

@@ -8,3 +8,6 @@
 /yelp_dataset
 
 *.db
+
+# Environment variables (contains API keys)
+.env
