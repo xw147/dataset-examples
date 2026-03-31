@@ -13,7 +13,7 @@ import sqlite3
 # ── File paths ──────────────────────────────────────────────────────────────
 CSV_PATH = os.path.join(
     os.path.dirname(__file__), "..",
-    "yelp_dataset", "unique_user_names_preprocessed_filtered_origin_chinese.csv"
+    "yelp_dataset", "unique_user_names_preprocessed_filtered_origin_chinese_reclassified.csv"
 )
 DB_PATH = os.path.join(
     os.path.dirname(__file__), "..",
